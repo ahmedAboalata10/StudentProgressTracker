@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -9,6 +8,7 @@ using StudentProgress.API.IRepositories;
 using StudentProgress.API.IServices.Analytics;
 using StudentProgress.API.IServices.Auth;
 using StudentProgress.API.IServices.Students;
+using StudentProgress.API.Middleware;
 using StudentProgress.API.Models.Auth;
 using StudentProgress.API.Repositories;
 using StudentProgress.API.Repositories.Students;
@@ -32,8 +32,12 @@ namespace StudentProgress.API
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
             builder.Services.AddDbContext<AppDbContext>(options =>
-                     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure(maxRetryCount: 3); // Correct usage of EnableRetryOnFailure
+                }));
 
             builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>()
                 .AddEntityFrameworkStores<AppDbContext>()
@@ -68,7 +72,7 @@ namespace StudentProgress.API
                 });
             });
             builder.Services.AddAuthorization();
-            builder.Services.AddMemoryCache(); 
+            builder.Services.AddMemoryCache();
 
 
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -81,6 +85,7 @@ namespace StudentProgress.API
 
 
             var app = builder.Build();
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
