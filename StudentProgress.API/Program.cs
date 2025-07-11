@@ -5,10 +5,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StudentProgress.API.Data;
 using StudentProgress.API.IRepositories;
+using StudentProgress.API.IServices.Analytics;
+using StudentProgress.API.IServices.Auth;
 using StudentProgress.API.IServices.Students;
 using StudentProgress.API.Models.Auth;
 using StudentProgress.API.Repositories;
 using StudentProgress.API.Repositories.Students;
+using StudentProgress.API.Services.Analytics;
+using StudentProgress.API.Services.Auth;
 using StudentProgress.API.Services.Students;
 using System.Text;
 
@@ -16,7 +20,7 @@ namespace StudentProgress.API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -53,9 +57,17 @@ namespace StudentProgress.API
             });
 
             builder.Services.AddAuthorization();
+            builder.Services.AddMemoryCache(); 
+
+
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+            builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+
             builder.Services.AddScoped<IStudentService, StudentService>();
+            builder.Services.AddScoped<IStudentService, StudentService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+
 
             var app = builder.Build();
 
@@ -64,6 +76,11 @@ namespace StudentProgress.API
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+            }
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                await DbSeeder.SeedUsersAndRolesAsync(services);
             }
 
             app.UseHttpsRedirection();

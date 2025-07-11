@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using StudentProgress.API.IServices.Students;
 using StudentProgress.API.Models.Students;
 
-namespace StudentProgress.API.Controllers
+namespace StudentProgress.API.Controllers.Students
 {
     [ApiController]
     [Route("api/[controller]")]
