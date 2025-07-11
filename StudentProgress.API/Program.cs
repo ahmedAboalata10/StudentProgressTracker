@@ -1,6 +1,7 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StudentProgress.API.Data;
@@ -15,6 +16,7 @@ using StudentProgress.API.Services.Analytics;
 using StudentProgress.API.Services.Auth;
 using StudentProgress.API.Services.Students;
 using System.Text;
+using System.Threading.RateLimiting;
 
 namespace StudentProgress.API
 {
@@ -55,7 +57,16 @@ namespace StudentProgress.API
                         Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
                 };
             });
-
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.AddFixedWindowLimiter("fixed", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 10; // max 10 requests
+                    limiterOptions.Window = TimeSpan.FromSeconds(30); // per 30 seconds
+                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    limiterOptions.QueueLimit = 2; // max 2 queued requests
+                });
+            });
             builder.Services.AddAuthorization();
             builder.Services.AddMemoryCache(); 
 
@@ -82,6 +93,7 @@ namespace StudentProgress.API
                 var services = scope.ServiceProvider;
                 await DbSeeder.SeedUsersAndRolesAsync(services);
             }
+            app.UseRateLimiter();
 
             app.UseHttpsRedirection();
 
